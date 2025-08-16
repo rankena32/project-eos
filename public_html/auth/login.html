@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prisijungimas – Project Eos</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .card{max-width:420px;margin:6vh auto;background:#1b2130;border:1px solid #263046;border-radius:14px;padding:18px}
+    .h{margin:0 0 10px;font:600 20px/1.3 system-ui;color:#e7ecf5}
+    .muted{color:#9fb0c7;font-size:13px;margin-bottom:8px}
+    label{display:block;margin:10px 0 6px;color:#cfe3ff;font-size:14px}
+    input[type="email"],input[type="password"]{
+      width:100%;padding:10px;border-radius:10px;border:1px solid #263046;background:#0e1420;color:#e7ecf5
+    }
+    .row{display:flex;gap:10px}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:1px solid #263046;background:#20283a;color:#e7ecf5;cursor:pointer}
+    .btn.primary{background:#2a6a2a}
+    .err{color:#ff6b6b;font-size:13px;margin-top:8px;min-height:18px}
+    .ok{color:#9ef08a;font-size:13px;margin-top:8px;min-height:18px}
+    .foot{margin-top:12px;font-size:13px;color:#9fb0c7}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="h">Prisijungimas</h1>
+    <p class="muted">Įvesk el. paštą ir slaptažodį. API atsakymai – tik JSON.</p>
+
+    <form id="loginForm" novalidate>
+      <label for="email">El. paštas</label>
+      <input id="email" type="email" autocomplete="email" required>
+
+      <label for="pass">Slaptažodis</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+
+      <div class="row" style="margin-top:12px">
+        <button class="btn" type="button" onclick="history.back()">Atgal</button>
+        <button class="btn primary" type="submit">Prisijungti</button>
+      </div>
+
+      <div id="msg" class="err"></div>
+      <div id="ok" class="ok"></div>
+
+      <div class="foot">Neturi paskyros? <a href="/auth/register.html">Registruokis</a>.</div>
+    </form>
+  </div>
+  <script>
+    (function(){
+      const form  = document.getElementById('loginForm');
+      const email = document.getElementById('email');
+      const pass  = document.getElementById('pass');
+      const msg   = document.getElementById('msg');
+      const ok    = document.getElementById('ok');
+
+      function showErr(t){ msg.textContent = t || ''; ok.textContent=''; }
+      function showOk(t){ ok.textContent  = t || ''; msg.textContent=''; }
+
+      async function apiLogin(email, password){
+        const res = await fetch('/api/auth.php?action=login', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password })
+        });
+        const j = await res.json().catch(()=>({error:'bad_json'}));
+        return { status: res.status, body: j };
+      }
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const vEmail = email.value.trim().toLowerCase();
+        const vPass  = pass.value;
+        if (!vEmail) return showErr('Įvesk el. paštą.');
+        if (!vPass)  return showErr('Įvesk slaptažodį.');
+
+        showOk('Jungiama...');
+        const { status, body } = await apiLogin(vEmail, vPass);
+
+        if (status === 200 && body?.ok) {
+          showOk('Prisijungta! Atveriam žaidimą...');
+          window.location.href = '/'; // Canvas index – pagal §3 srautas
+          return;
+        }
+        showErr(body?.error === 'invalid_credentials' ? 'Neteisingi duomenys.' : 'Nepavyko prisijungti.');
+      });
+    })();
+  </script>
+</body>
+</html>

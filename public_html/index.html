@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project Eos</title>
+  <link rel="icon" href="/assets/favicon.ico">
+  <style>
+    :root{
+      --bg:#0b0f18; --ink:#e7ecf5; --muted:#9fb0c7; --accent:#8fd14f; --panel:#151923; --edge:#263046; --card:#1b2130;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,Segoe UI,Roboto,Ubuntu,Arial}
+    .starfield, .starfield:before, .starfield:after{
+      position:fixed; inset:0; content:""; z-index:-1; background:transparent url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="3" height="3"><circle cx="1" cy="1" r="1" fill="white" opacity="0.7"/></svg>') repeat;
+      animation: drift 160s linear infinite; opacity:.18;
+    }
+    .starfield:before{ transform:scale(1.4); opacity:.12; animation-duration:240s; }
+    .starfield:after{ transform:scale(1.8); opacity:.08; animation-duration:360s; }
+    @keyframes drift { from{ background-position:0 0 } to{ background-position:-2000px -2000px } }
+
+    .wrap{display:grid;place-items:center;height:100%;padding:20px}
+    .card{
+      width:min(1000px,95vw); background:linear-gradient(180deg,#121827,#0f1422);
+      border:1px solid var(--edge); border-radius:18px; padding:22px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.35), inset 0 0 80px rgba(143,209,79,.05);
+    }
+    .card-grid{display:grid;grid-template-columns:1.3fr .9fr;gap:16px}
+    @media (max-width:980px){ .card-grid{grid-template-columns:1fr} }
+
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.6px}
+    .logo .dot{width:10px;height:10px;border-radius:999px;background:var(--accent);box-shadow:0 0 12px #8fd14f}
+    .subtitle{color:#cfe3ff;font-size:13px;margin-top:4px;opacity:.85}
+    .press{margin:18px 0 12px;color:#bcd6ff;text-transform:uppercase;letter-spacing:.18em;font-size:12px;opacity:.9}
+    .title{font-size:28px;margin:8px 0 6px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--edge);background:#101624;color:#cfe3ff;font-size:12px}
+    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btn{
+      padding:12px 16px;border:1px solid var(--edge);border-radius:12px;background:#1b2130;color:#e7ecf5;
+      cursor:pointer; transition:transform .08s ease, box-shadow .12s ease, background .2s;
+    }
+    .btn:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.22); background:#20283a }
+    .btn.primary{ background:#244121; border-color:#2b5b2b }
+    .btn.primary:hover{ background:#2a6a2a }
+    .foot{margin-top:14px;font-size:12px;color:#9fb0c7}
+
+    /* Mini characters panel */
+    .side{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px}
+    .side h3{margin:2px 0 8px;font-size:16px}
+    .mini-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    @media (max-width:520px){ .mini-list{grid-template-columns:1fr} }
+    .mini-card{
+      display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--edge);border-radius:12px;background:#101624;
+      transition:transform .08s ease, background .2s; cursor:pointer;
+    }
+    .mini-card:hover{ transform:translateY(-1px); background:#162034 }
+    .avatar{
+      width:40px;height:40px;border-radius:999px;display:grid;place-items:center;
+      background:#22304a;color:#cfe3ff;border:1px solid #2a3a5a;font-weight:700
+    }
+    .mini-name{font-weight:600}
+    .mini-sub{color:#9fb0c7;font-size:12px}
+    .empty{color:#9fb0c7;font-size:13px;padding:6px 2px}
+
+    /* Canvas + overlay */
+    #game{display:none;margin:0 auto;border:1px solid var(--edge);background:#0f1115;border-radius:10px}
+    #overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(10,14,22,.55);backdrop-filter:blur(4px)}
+    .menu{background:#151b28;border:1px solid var(--edge);border-radius:16px;padding:16px;min-width:280px}
+    .menu h3{margin:0 0 8px}
+    .menu .btn{width:100%;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="starfield"></div>
+
+  <div class="wrap">
+    <div class="card" id="mainCard">
+      <div class="logo"><span class="dot"></span> Project Eos</div>
+      <div class="subtitle">MMORPG · 2D Canvas · Server-side PHP/MySQL · Hostinger</div>
+
+      <div class="card-grid">
+        <!-- LEFT: Main menu -->
+        <div>
+          <div class="press">Press Enter to Start</div>
+          <div class="title">Pagrindinis meniu</div>
+
+          <div class="row">
+            <div id="sessionInfo" class="pill">Tikrinama sesija...</div>
+            <div id="charInfo" class="pill">Aktyvus veikėjas: nėra</div>
+          </div>
+
+          <div class="buttons">
+            <button class="btn primary" id="btnPlay">▶ Play</button>
+            <button class="btn" id="btnCharacters">👥 Characters</button>
+            <button class="btn" id="btnCharView">👤 Character View</button>
+            <button class="btn" id="btnSettings">⚙️ Settings</button>
+            <button class="btn" id="btnLogout">⏻ Logout</button>
+            <button class="btn" id="btnLogin">🔐 Login / Register</button>
+          </div>
+
+          <div class="foot">„Play“ paleidžia Canvas ir startuoja tinkamą sceną (prisijungimas → veikėjas → pasaulis). API – tik JSON.</div>
+        </div>
+
+        <!-- RIGHT: Mini Characters -->
+        <aside class="side">
+          <h3>Mini Characters</h3>
+          <div id="mini-characters" class="mini-list"></div>
+          <div class="foot" style="margin-top:10px">
+            Patarimas: spustelėk veikėją, kad <b>aktyvuotum</b> ir atidarytum <i>Character View</i>.
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <canvas id="game" width="960" height="540"></canvas>
+  </div>
+
+  <!-- In-game quick menu overlay -->
+  <div id="overlay">
+    <div class="menu">
+      <h3>Greitas meniu</h3>
+      <div class="buttons">
+        <button class="btn" id="ovResume">Tęsti</button>
+        <button class="btn" id="ovLogout">Atsijungti</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const $ = (q)=>document.querySelector(q);
+  const sessionInfo = $('#sessionInfo');
+  const charInfo = $('#charInfo');
+  const miniWrap = $('#mini-characters');
+  const btnPlay = $('#btnPlay'), btnLogin = $('#btnLogin'), btnLogout = $('#btnLogout');
+  const btnCharacters = $('#btnCharacters'), btnCharView = $('#btnCharView'), btnSettings = $('#btnSettings');
+  const canvas = $('#game'), mainCard = $('#mainCard'), overlay = $('#overlay');
+  let isLogged = false, userEmail = null, gameStarted = false;
+
+  function getActiveCharId(){
+    try { return parseInt(localStorage.getItem('active_character_id')||'0',10) || null; } catch(_){ return null; }
+  }
+  function setActiveCharId(id){
+    try {
+      if (id) localStorage.setItem('active_character_id', String(id));
+      else localStorage.removeItem('active_character_id');
+    } catch(_){}
+  }
+
+  async function apiMe(){
+    try{
+      const r = await fetch('/api/auth.php?action=me', { credentials:'include' });
+      const j = await r.json();
+      return j && j.user ? j.user : null;
+    }catch(_){ return null; }
+  }
+  async function apiLogout(){
+    try{ await fetch('/api/auth.php?action=logout', { method:'POST', credentials:'include' }); }catch(_){}
+  }
+  async function apiCharList(){
+    try{
+      const r = await fetch('/api/character.php?action=list', { credentials:'include' });
+      const j = await r.json();
+      return Array.isArray(j?.characters) ? j.characters : [];
+    }catch(_){ return []; }
+  }
+
+  function initials(name){
+    const parts = String(name||'').trim().split(/\s+/);
+    if (!parts.length) return '?';
+    return (parts[0][0]||'?').toUpperCase();
+  }
+
+  function renderMiniCharacters(list){
+    miniWrap.innerHTML = '';
+    if (!list.length){
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.textContent = 'Veikėjų nėra. Sukurk per Characters.';
+      miniWrap.appendChild(div);
+      return;
+    }
+    const activeId = getActiveCharId();
+    list.forEach(ch=>{
+      const card = document.createElement('div');
+      card.className = 'mini-card';
+      card.title = 'Peržiūrėti "'+ch.name+'"';
+      card.addEventListener('click', async ()=>{
+        setActiveCharId(ch.id);
+        await startGame('character_view');
+      });
+
+      const av = document.createElement('div');
+      av.className = 'avatar';
+      av.textContent = initials(ch.name);
+
+      const box = document.createElement('div');
+      const nm = document.createElement('div');
+      nm.className = 'mini-name';
+      nm.textContent = ch.name + (activeId===ch.id ? ' • (aktyvus)' : '');
+      const sub = document.createElement('div');
+      sub.className = 'mini-sub';
+      sub.textContent = `slot ${ch.slot}${ch.last_played_at ? ' • žaista: '+ch.last_played_at : ''}`;
+
+      box.appendChild(nm); box.appendChild(sub);
+      card.appendChild(av); card.appendChild(box);
+      miniWrap.appendChild(card);
+    });
+  }
+
+  async function checkSession(){
+    const u = await apiMe();
+    isLogged = !!u; userEmail = u?.email || null;
+    sessionInfo.textContent = isLogged ? ('Prisijungęs: ' + userEmail) : 'Neprisijungęs';
+    btnLogin.style.display  = isLogged ? 'none' : 'inline-block';
+    btnLogout.style.display = isLogged ? 'inline-block' : 'none';
+    btnCharacters.style.display = isLogged ? 'inline-block' : 'none';
+    btnCharView.style.display   = isLogged ? 'inline-block' : 'none';
+
+    if (!isLogged) {
+      charInfo.textContent = 'Aktyvus veikėjas: nėra';
+      renderMiniCharacters([]);
+      return;
+    }
+    let activeId = getActiveCharId();
+    const list = await apiCharList();
+    if (!activeId && list.length) {
+      activeId = list[0].id; setActiveCharId(activeId);
+    }
+    const activeObj = list.find(x=>x.id===activeId);
+    charInfo.textContent = activeObj ? `Aktyvus veikėjas: ${activeObj.name}` : 'Aktyvus veikėjas: nėra';
+    renderMiniCharacters(list);
+  }
+
+  function showOverlay(show){ overlay.style.display = show ? 'flex' : 'none'; }
+
+async function loadGameScripts(){
+  const v='?v=20250816a';
+  const scripts = [
+    '/js/core/engine.js'+v,
+    '/js/core/renderer.js'+v,
+    '/js/core/input.js'+v,
+
+    '/js/core/camera.js'+v,
+    '/js/core/physics.js'+v,
+    '/js/features/map.js'+v,
+
+    '/js/state/scene_characters.js'+v,
+    '/js/state/scene_character_view.js'+v,
+    '/js/state/scene_world.js'+v,
+
+    '/js/main.js'+v
+  ];
+  for (let src of scripts) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('Nepavyko įkelti: '+src));
+      document.body.appendChild(s);
+    });
+  }
+}
+
+
+  async function startGame(target='auto'){
+    if (!isLogged) { window.location.href = '/auth/login.html'; return; }
+    if (gameStarted) { canvas.focus(); return; }
+    gameStarted = true;
+
+    // Parenkam starto sceną:
+    let start = 'world';
+    if (target === 'auto') {
+      start = getActiveCharId() ? 'world' : 'characters';
+    } else if (target === 'characters') {
+      start = 'characters';
+    } else if (target === 'character_view') {
+      start = 'character_view';
+    } else if (target === 'world') {
+      start = 'world';
+    }
+    window.__startScene = start;
+
+    // UI perjungimas
+    mainCard.style.display = 'none';
+    canvas.style.display = 'block';
+
+    await loadGameScripts();
+
+    // Esc → overlay
+    window.addEventListener('keydown', (e)=>{
+      if (e.code === 'Escape') showOverlay(overlay.style.display !== 'flex');
+    });
+
+    // „atgal į meniu“ kabliukas scenoms
+    window.__backToMenu = () => {
+      showOverlay(false);
+      canvas.style.display='none'; mainCard.style.display='block';
+      gameStarted = false; window.__startScene = 'world';
+      checkSession(); // atnaujinti indikacijas + mini list
+    };
+  }
+
+  // Buttons
+  btnPlay.addEventListener('click', ()=> startGame('auto'));
+  btnCharacters.addEventListener('click', ()=> startGame('characters'));
+  btnCharView.addEventListener('click',   ()=> startGame('character_view'));
+  btnLogin.addEventListener('click',      ()=> window.location.href='/auth/login.html');
+  btnLogout.addEventListener('click', async ()=>{
+    await apiLogout(); setActiveCharId(null);
+    isLogged = false; gameStarted=false;
+    canvas.style.display='none'; mainCard.style.display='block';
+    sessionInfo.textContent = 'Neprisijungęs'; charInfo.textContent='Aktyvus veikėjas: nėra';
+    btnLogin.style.display='inline-block'; btnLogout.style.display='none';
+    btnCharacters.style.display='none'; btnCharView.style.display='none';
+    renderMiniCharacters([]);
+  });
+  btnSettings.addEventListener('click', ()=> alert('Settings bus V0.1 etape.'));
+
+  $('#ovResume').addEventListener('click', ()=> showOverlay(false));
+  $('#ovLogout').addEventListener('click', async ()=>{ showOverlay(false); await apiLogout(); window.location.reload(); });
+
+  // Enter → Play
+  window.addEventListener('keydown', (e)=>{ if(e.code==='Enter' && !gameStarted) startGame('auto'); });
+
+  // Kickoff
+  checkSession();
+  </script>
+</body>
+</html>

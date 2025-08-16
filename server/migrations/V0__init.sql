@@ -1,0 +1,39 @@
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  status ENUM('active','banned') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Sessions (httpOnly token sesijos)
+CREATE TABLE IF NOT EXISTS sessions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  token CHAR(64) NOT NULL UNIQUE,
+  ip VARBINARY(16) NULL,
+  user_agent VARCHAR(255) NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (user_id),
+  INDEX (token),
+  CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Characters
+CREATE TABLE IF NOT EXISTS characters (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  name VARCHAR(32) NOT NULL,
+  gender ENUM('m','f','x') NOT NULL DEFAULT 'x',
+  appearance JSON NULL,
+  slot TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_played_at TIMESTAMP NULL DEFAULT NULL,
+  UNIQUE KEY uniq_user_slot (user_id, slot),
+  UNIQUE KEY uniq_user_name (user_id, name),
+  INDEX (user_id),
+  CONSTRAINT fk_char_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
